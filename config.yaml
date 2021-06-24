@@ -20,7 +20,7 @@ nav:
 - label: Contact Us
   icon: fas fa-envelope
   action: contact-us
-- label:
+-
 - label: View page source
   icon: fas fa-file-code
   action: view-markdown
