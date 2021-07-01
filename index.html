@@ -17,7 +17,7 @@
 
   <div id="app" v-cloak ref="app" :class="layouts.join(' ')">
     <div id="header" ref="header">            
-      <component v-bind:is="'ve-header'" :active="true" :scroll-top="scrollTop"
+      <component v-bind:is="headerComponent" :active="true" :scroll-top="scrollTop"
                  :site-config="siteConfig"
                  :essay-config="essayConfig"
                  :content-source="contentSource"
@@ -58,6 +58,7 @@
         :is-juncture="isJuncture"
         :is-authenticated="authenticatedUser !== null && loginsEnabled"
         :is-admin="isAdminUser"
+        :do-action-callback="doActionCallback"
         :version="junctureVersion"
         @set-entities="entities = $event"
         @set-params="params = $event"
@@ -89,7 +90,7 @@
       ></component>
     </div>
     <div v-if="essayConfig && path === '/'" id="footer" ref="footer">            
-      <component v-bind:is="'ve-footer'" :site-config="siteConfig" :content-source="contentSource"></component>
+      <component v-bind:is="footerComponent" :site-config="siteConfig" :content-source="contentSource"></component>
     </div>
 
     <div ref="markdownViewer" id="markdown-viewer" style="display: none;">
@@ -335,7 +336,7 @@
     async function headRef(acct, repo, ref, token) {  
       token = token || oauthAccessToken || ghUnscopedToken
       let heads, tags, found, sha
-      console.log(`headRef: acct=${acct} repo=${repo} ref=${ref} token=${token} oauthAccessToken=${oauthAccessToken} ghUnscopedToken=${ghUnscopedToken}`)
+      // console.log(`headRef: acct=${acct} repo=${repo} ref=${ref} token=${token} oauthAccessToken=${oauthAccessToken} ghUnscopedToken=${ghUnscopedToken}`)
       let resp = await fetch(`https://api.github.com/repos/${acct}/${repo}/git/refs/heads`, {
         headers: {Authorization: `Token ${token}`, Accept: 'application/vnd.github.v3+json'} })
       if (resp.ok) {
@@ -357,8 +358,8 @@
 
     async function getFile(acct, repo, ref, path, token) {
       token = token || oauthAccessToken || ghUnscopedToken
-      console.log(`getFile: token=${token} oauthAccessToken=${oauthAccessToken} ghUnscopedToken=${ghUnscopedToken}`)
-      console.log(`getFile: acct=${acct} repo=${repo} ref=${ref} path=${path} token=${token}`)
+      // console.log(`getFile: token=${token} oauthAccessToken=${oauthAccessToken} ghUnscopedToken=${ghUnscopedToken}`)
+      // console.log(`getFile: acct=${acct} repo=${repo} ref=${ref} path=${path} token=${token}`)
       let content
       let resp = await fetch(`https://api.github.com/repos/${acct}/${repo}/contents${path}?ref=${ref}`, {headers: {Authorization:`Token ${token}`}})
       if (resp.ok) {
@@ -438,8 +439,8 @@
       if (fontawesome) document.querySelector('body').appendChild(makeScriptTag(fontawesome, 'anonymous'))
       
 
-      let mainCssPromise = ENV === 'DEV'
-        ? fetch(`${window.location.port === '8088' ? '' : '/juncture'}/css/main.css`).then(resp => resp.text())
+      let mainCssPromise = ENV === 'DEV' && contentSource.repo === 'juncture'
+        ? fetch(`${window.location.port === '8088' ? '' : 'juncture'}/css/main.css`).then(resp => resp.text())
         : getFile('jstor-labs', 'juncture', junctureVersionHash, '/css/main.css')
       mainCssPromise.then(css => {
       let style = document.createElement('style')
@@ -507,7 +508,9 @@
         }),
         computed: {
           // essayConfig() { return this.params.find(attr => attr['ve-config'] !== undefined) },
-          mainComponent() { return this.essayConfig && this.essayConfig.component ? `ve-${this.essayConfig.component.toLowerCase()}` : null},
+          headerComponent() { return this.essayConfig && this.essayConfig.header ? `ve-${this.essayConfig.header.toLowerCase()}` : null},
+          mainComponent() { return this.essayConfig && this.essayConfig.main ? `ve-${this.essayConfig.main.toLowerCase()}` : null},
+          footerComponent() { return this.essayConfig && this.essayConfig.footer ? `ve-${this.essayConfig.footer.toLowerCase()}` : null},
           isAdminUser() { return ENV === 'DEV' || authenticatedUser !== null && (authenticatedUser.isAdmin || contentSource.acct === authenticatedUser.acct) },
           ghToken() { return oauthAccessToken || ghUnscopedToken },
           viewerStyle() { return { 
@@ -577,11 +580,10 @@
 
           // Handles menu actions from header
           async doAction(action, options) {
-            console.log('doAction', action, options)
-            if (action === 'send-email') {
+            // console.log('doAction', action, options)
+            if (action === 'sendmail') {
               this.doActionCallback = {status: 'processing', message: 'Processing request'}
-              let resp = await sendEmail(options)
-              console.log(resp)
+              let resp = await sendmail(options)
               this.doActionCallback = {status: 'done', message: 'Email sent'}
             } else if (action === 'view-markdown') {
               this.markdownViewer.show()
@@ -730,9 +732,10 @@
             if (markdown) {
               ([this.markdown, this.html, this.params, this.entities] = await this.parseMarkdown(markdown))
               let essayConfig = this.params.find(param => param['ve-config']) || {}
-              console.log('essayConfig', essayConfig)
               if (essayConfig.banner) essayConfig.banner = convertURL(essayConfig.banner)
-              essayConfig.component = essayConfig.component || 'essay'
+              essayConfig.header = essayConfig.header || 'header'
+              essayConfig.main = essayConfig.main || essayConfig.component || 'visual-essay'
+              essayConfig.footer = essayConfig.footer || 'footer'
               this.essayConfig = essayConfig
             }
             if (gaPropertyID) ga('send', 'pageview', `${contentSource.basePath}${path}`)
@@ -742,7 +745,6 @@
           // Convert essay Markdown into HTML.  Markdown headings are used to infer content heirarchy
           async parseMarkdown(markdown) {
             let tmp = new DOMParser().parseFromString(md.render(markdown), 'text/html').children[0].children[1]
-            console.log(tmp)
             this.convertResourceUrls(tmp)
       
             let essay = document.createElement('div')
@@ -1007,6 +1009,7 @@
           itemClickHandler(e) {
             e.stopPropagation()
             this.selectedItem = e.target.dataset.eid 
+            this.interactionHander(e)
           },
 
           getInteractionAttrs(elem) {
@@ -1040,8 +1043,8 @@
 
           interactionHander(e) {
             e.stopPropagation()
-            const eventActions = {}
-            Array.from(e.target.attributes)
+            const eventActions = {};
+            [...e.target.attributes, ...e.target.parentElement.attributes]
               .filter(attr => attr.name.indexOf(`data-`) === 0 && attr.name.split('-').length === 4)
               .map(attr => {
                 const attrParts = attr.name.split('-').slice(1)
@@ -1148,7 +1151,7 @@
           },
 
           async addPage(acct, repo, ref, path) {
-            console.log(`addPage: acct=${acct} repo=${repo} ref=${ref} path=${path}`)
+            // console.log(`addPage: acct=${acct} repo=${repo} ref=${ref} path=${path}`)
             let replacementValues = {'<<acct>>': acct, '<<repo>>': repo, '<<display-name>>': authenticatedUser.displayName, '<<email>>': authenticatedUser.email}
             resp = await this.getFile('/page-templates/new-page-readme.md', 'jstor-labs', 'juncture', 'main')
             toReplace = {...replacementValues, ...{'<<edit-url>>': `https://github.com/${acct}/${repo}/edit/${ref}${path}/README.md`}}
@@ -1156,7 +1159,7 @@
           },
 
           async createSite(targetAcct, targetRepo, fromRef) {
-            console.log(`createSite: targetAcct=${targetAcct} targetRepo=${targetRepo} fromRef=${fromRef}`)
+            // console.log(`createSite: targetAcct=${targetAcct} targetRepo=${targetRepo} fromRef=${fromRef}`)
             // See if repo exists and create it if needed
             let resp = await fetch(`https://api.github.com/repos/${targetAcct}/${targetRepo}`, { headers: {Authorization: `Token ${this.ghToken}`}} )
             let repoExists = resp.ok
@@ -1176,7 +1179,7 @@
           },
 
           async updateSite(release) {
-            console.log(`updateSite: release=${release.name} tag=${release.tag_name}`)
+            // console.log(`updateSite: release=${release.name} tag=${release.tag_name}`)
             this.syncFiles(contentSource.acct, contentSource.repo, release.tag_name, false)
           }
     
@@ -1230,7 +1233,7 @@
 
           // logging watchers
           params (params) {
-            console.log('params', params)
+            // console.log('params', params)
             // Load custom components declared in page markdown
             params
               .filter(param => param['ve-component'] !== undefined)
@@ -1244,8 +1247,8 @@
                 }
             })
           },
-          entities (entities) { console.log('entities', entities) },
-          selectedViewer (selectedViewer) { console.log('selectedViewer', selectedViewer) },
+          // entities (entities) { console.log('entities', entities) },
+          // selectedViewer (selectedViewer) { console.log('selectedViewer', selectedViewer) },
           selectedItem (eid) { console.log(`selectedItem=${eid}`) },
           hoverItem (eid) {
             document.querySelectorAll('.hover').forEach(el => el.classList.remove('hover'))
@@ -1333,7 +1336,7 @@
           repo = repo || this.contentSource.repo
           ref = ref || this.contentSource.ref
           let ghToken = oauthAccessToken || ghUnscopedToken
-          console.log(`getFile: path=${path} acct=${acct} repo=${repo} ref=${ref} ghToken=${ghToken}`)
+          // console.log(`getFile: path=${path} acct=${acct} repo=${repo} ref=${ref} ghToken=${ghToken}`)
           if (ENV === 'PROD' && acct) {
             let url = `https://api.github.com/repos/${acct}/${repo}/contents${path}?ref=${ref}`
             let resp = await fetch(url, ghToken ? {headers: {Authorization:`Token ${ghToken}`}} : {})
@@ -1354,7 +1357,7 @@
           repo = repo || this.contentSource.repo
           branch = branch || this.contentSource.ref
           message = message || 'API Commit'
-          console.log(`putFile: path=${path} acct=${acct} repo=${repo} branch=${branch} message=${message}`)
+          // console.log(`putFile: path=${path} acct=${acct} repo=${repo} branch=${branch} message=${message}`)
           if (ENV === 'PROD' && acct) {
             let ghToken = oauthAccessToken || ghUnscopedToken
             let existing = await this.getFile(path, acct, repo, branch)
@@ -1367,6 +1370,43 @@
             let url = `${this.contentSource.baseUrl}${this.contentSource.basePath}${path}`
             let resp = await fetch(url, { method: 'PUT', body: content })
           }
+        },
+        convertLinks(root) {
+          root.querySelectorAll('a').forEach(link => {
+            if ((!link.href && link.dataset.target) || link.href.indexOf(window.location.host) > 0) {
+              // If internal link
+              let target = link.dataset.target
+              if (!target) { 
+                const parsedUrl = parseUrl(link.href)
+                let pathElems = parsedUrl.pathname.split('/').filter(elem => elem !== '')
+                if (contentSource.isGhpSite) {
+                  if (pathElems[0] === contentSource.repo) pathElems = pathElems.slice(1)
+                } else {
+                  if (pathElems[0] === contentSource.acct && pathElems[1] === contentSource.repo) pathElems = pathElems.slice(2)
+                }
+                target = parsedUrl.hash === '' ? `/${pathElems.join('/')}/` : parsedUrl.hash.split('?')[0]
+              }
+              link.removeAttribute('href')
+              link.setAttribute('data-target', target)
+
+              // Add click handler for internal links
+              link.addEventListener('click', (e) => {
+                let target = e.target
+                while (!target.dataset.target && target.parentElement) { target = target.parentElement }
+                let path = target.dataset.target
+                if (path[0] === '#') {
+                  let anchorElem = document.getElementById(path.slice(1))
+                  if (anchorElem) anchorElem.scrollIntoView()
+                } else {
+                  this.$emit('do-action', 'load-page', path)
+                }
+              })
+            } else {
+              // If external link, add external link icon to text and force opening in new tab
+              link.innerHTML += '<sup><i class="fa fa-external-link-square-alt" style="margin-left:3px;margin-right:2px;font-size:0.7em;color:#219653;"></i></sup>'
+              link.setAttribute('target', '_blank')
+            }
+          })
         }
       }
     })
@@ -1378,6 +1418,15 @@
     function isEntityID(arg) { return typeof arg === 'string' && arg.split(':').slice(-1).find(val => val.length > 1 && val[0] === 'Q' && isNumeric(val.slice(1))) !== undefined }
     function attrsToObject(el) { return Object.fromEntries(Array.from(el.attributes).map(attr => 
                       [attr.nodeName, attr.value === '' || attr.value === 'true' ? true : attr.value === 'false' ? false : attr.value] )) }
+    function slugify(str) {
+      str = str.replace(/^\s+|\s+$/g, '').toLowerCase()
+      let from = "ÁÄÂÀÃÅČÇĆĎÉĚËÈÊẼĔȆÍÌÎÏŇÑÓÖÒÔÕØŘŔŠŤÚŮÜÙÛÝŸŽáäâàãåčçćďéěëèêẽĕȇíìîïňñóöòôõøðřŕšťúůüùûýÿžþÞĐđßÆa·/_,:;"
+      var to   = "AAAAAACCCDEEEEEEEEIIIINNOOOOOORRSTUUUUUYYZaaaaaacccdeeeeeeeeiiiinnooooooorrstuuuuuyyzbBDdBAa------"
+      for (let i = 0, l = from.length; i < l; i++) {
+        str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i))
+      }
+      return str.replace(/[^a-z0-9 -]/g, '') .replace(/\s+/g, '-').replace(/-+/g, '-')
+    }
     function getDomPath(el) {
       var stack = []
       while ( el.parentNode != null ) {
@@ -1407,7 +1456,8 @@
     // Gets site config
     async function getSiteConfig() {
       let config = {}
-      let junctureConfigUrl = isJuncture && window.location.hostname !== 'localhost' 
+      console.log(isJuncture, ENV)
+      let junctureConfigUrl = isJuncture && ENV !== 'DEV'
         ? `${window.location.origin}/config.yaml`
         : 'https://raw.githubusercontent.com/jstor-labs/juncture/juncture/config.yaml'
       let resp = await fetch(junctureConfigUrl)
@@ -1444,7 +1494,6 @@
       if (config.gaPropertyID) gaPropertyID = config.gaPropertyID
       if (config.fontawesome) fontawesome = config.fontawesome
       loginsEnabled = gcApiKey !== undefined && gcAuthDomain !== undefined
-      console.log(config)
       return config
     }
 
@@ -1512,7 +1561,7 @@
       }
       // if (isJuncture && contentSource.acct !== 'jstor-labs' || contentSource.repo !== 'juncture') {
       if (contentSource.repo !== 'juncture' || contentSource.acct !== 'jstor-labs') {
-        if (ENV === 'DEV') {
+        if (window.location.hostname === 'localhost') {
           let basePath = contentSource.isGhpSite ? '/juncture' : ''
           let resp = await fetch(`${contentSource.baseUrl}${basePath}/${componentsRoot}`)
           resp = await resp.json()
@@ -1568,17 +1617,15 @@
       if (crossorigin) el.setAttribute('crossorigin', crossorigin)
       return el
     }
-
     function convertURL(current, path, pathIsDir) {
       let _current = current.replace(/\s/g, '%20')
       let pathElems = []
       if (_current.indexOf('http') === 0) {
         if (_current.indexOf(window.location.origin) === 0) {
-          if (!pathIsDir) {
+          if (path && !pathIsDir) {
             let dirElems = path.split('/').filter(elem => elem !== '').slice(0,-1)
             let mdDir = dirElems.length > 0 ? `/${dirElems.join('/')}/` : '/'
             _current = _current.replace(new RegExp(path.replace(/\//g, '\\/')), `${mdDir}`)
-            console.log(path, mdDir, _current)
           }
           pathElems = _current.split('/').slice(3)
         }
@@ -1601,8 +1648,8 @@
       return converted
     }
 
-    async function sendEmail(options) {
-      let resp = await fetch('https://visual-essays.app/send-email/', {
+    async function sendmail(options) {
+      let resp = await fetch('https://sendmail.juncture-digital.org/', {
         method: 'POST', body: JSON.stringify(options),
         headers: {'Content-Type': 'application/json', Accept: 'application/json'},
       })

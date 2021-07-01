@@ -25,28 +25,9 @@ nav:
   icon: fas fa-file-code
   action: view-markdown
 
-# If the /contact-us path is defined for the nav menu a contact form will be enabled
+# If a contact-us action is defined for the nav menu a contact form will be enabled
 # The following information is used in the display and processing of the contact form.
 #contactForm:
-#  toEmail:
-#  - user@example.com
+#  to:
+#  - User Name <user@example.com>
 #  subject: Contact Us
-
-#######################################################
-# Base URL of server used for serving and optionally
-# creating IIIF presentation manifests
-######################################################
-# iiifServer: https://iiif.juncture-digital.org
-
-# siteAdmins:
-#- github-username
-
-# Optional URL for premium version of Fontawesome
-#fontawesome: https://kit.fontawesome.com/12345abcde.js
-
-######################################################
-# Optional credentials used for GitHub API
-######################################################
-
-# GitHub upscoped API token used for content retrivals
-#ghUnscopedToken: <Base64 encoded GitHub unscoped token>

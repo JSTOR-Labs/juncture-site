@@ -2,7 +2,3 @@
 .idea
 .DS_Store
 venv
-CNAME
-tmp
-creds
-iiif-server/config.yaml
