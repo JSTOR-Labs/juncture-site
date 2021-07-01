@@ -439,6 +439,7 @@
       if (fontawesome) document.querySelector('body').appendChild(makeScriptTag(fontawesome, 'anonymous'))
       
 
+      /*
       let mainCssPromise = ENV === 'DEV' && contentSource.repo === 'juncture'
         ? fetch(`${window.location.port === '8088' ? '' : 'juncture'}/css/main.css`).then(resp => resp.text())
         : getFile('jstor-labs', 'juncture', junctureVersionHash, '/css/main.css')
@@ -447,10 +448,11 @@
         style.innerHTML = css
         document.querySelector('head').appendChild(style)
       })
+      */
 
       let customCssPromise = ENV === 'DEV'
         ? fetch(`${contentSource.assetsBaseUrl}/css/custom.css`).then(resp => resp.text())
-        : getFile(contentSource.acct, contentSource.repo, contentSource.ref, '/css/custom.css')
+        : getFile(contentSource.acct, contentSource.repo, contentSource.ref, '/custom.css')
       customCssPromise.then(css => {
         if (css) {
           let style = document.createElement('style')
