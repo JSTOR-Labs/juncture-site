@@ -33,6 +33,8 @@ To make a copy of Juncture...
 ## Customizing the site
 <param id="customizing">
 
+### Changing the name of your site
+
 ### Setting options in the site config
 
 ### Defining custom styles
