@@ -267,8 +267,18 @@
       } else if (ENV === 'DEV') {
         // For local dev in GHP mode
         let repo = window.location.pathname.split('/').filter(elem => elem !== '')[0] || 'juncture'
-        contentSource = {acct: 'jstor-labs', repo, branch: 'main', ref: 'main', hash: null, baseUrl: window.location.origin, basePath: `/${repo}`, isGhpSite: true,
-                         assetsBaseUrl: `${window.location.origin}/${repo}`}
+        contentSource = {
+          acct: 'jstor-labs', 
+          repo, branch: 'main',
+          ref: 'main', 
+          hash: null, 
+          isGhpSite: true,
+          baseUrl: window.location.origin, 
+          // basePath: `/${repo}`, 
+          // assetsBaseUrl: `${window.location.origin}/${repo}`
+          basePath: '', 
+          assetsBaseUrl: `${window.location.origin}`
+        }
         // isJuncture = contentSource.acct === 'jstor-labs' && contentSource.repo === 'juncture'
 
       } else {
@@ -438,17 +448,17 @@
       if (siteConfig.title) document.title = siteConfig.title
       if (fontawesome) document.querySelector('body').appendChild(makeScriptTag(fontawesome, 'anonymous'))
       
-
       /*
       let mainCssPromise = ENV === 'DEV' && contentSource.repo === 'juncture'
         ? fetch(`${window.location.port === '8088' ? '' : 'juncture'}/css/main.css`).then(resp => resp.text())
         : getFile('jstor-labs', 'juncture', junctureVersionHash, '/css/main.css')
+      */
+      let mainCssPromise = getFile('jstor-labs', 'juncture', junctureVersionHash, '/css/main.css')
       mainCssPromise.then(css => {
       let style = document.createElement('style')
         style.innerHTML = css
         document.querySelector('head').appendChild(style)
       })
-      */
 
       let customCssPromise = ENV === 'DEV'
         ? fetch(`${contentSource.assetsBaseUrl}/css/custom.css`).then(resp => resp.text())
@@ -1558,10 +1568,15 @@
       if (ENV === 'DEV') {
         let basePath = contentSource.isGhpSite ? contentSource.basePath : ''
         let resp = await fetch(`${contentSource.baseUrl}${basePath}/${componentsRoot}`)
-        resp = await resp.json()
-        componentsList = [...componentsList, ...resp.files.map(fname => `${contentSource.baseUrl}${basePath}/${componentsRoot}/${fname}`)]
+        // resp = await resp.json()
+        resp = await resp.text()
+        let tmp = new DOMParser().parseFromString(resp, 'text/html').children[0].children[1]
+        componentsList = [...componentsList, ...Array.from(tmp.querySelectorAll('li a'))
+          .map(el => el.innerText)
+          .map(fname => `${contentSource.baseUrl}${basePath}/${componentsRoot}/${fname}`)]
       }
       // if (isJuncture && contentSource.acct !== 'jstor-labs' || contentSource.repo !== 'juncture') {
+      /*
       if (contentSource.repo !== 'juncture' || contentSource.acct !== 'jstor-labs') {
         if (window.location.hostname === 'localhost') {
           let basePath = contentSource.isGhpSite ? '/juncture' : ''
@@ -1569,13 +1584,14 @@
           resp = await resp.json()
           componentsList = [...componentsList, ...resp.files.map(fname => `${contentSource.baseUrl}${basePath}/${componentsRoot}/${fname}`)]
         } else {
+        */
           let resp = await fetch(`https://api.github.com/repos/jstor-labs/juncture/git/trees/${junctureVersionHash}`, ghToken ? {headers: {Authorization: `Token ${ghToken}`}} : {})
           resp = await resp.json()
           resp = await fetch(resp.tree.find(item => item.path === componentsRoot).url, ghToken ? {headers: {Authorization: `Token ${ghToken}`}} : {})
           resp = await resp.json()
           componentsList = [...componentsList, ...resp.tree.map(item => `https://raw.githubusercontent.com/jstor-labs/juncture/${junctureVersionHash}/${componentsRoot}/${item.path}`)]
-        }
-      }
+        //}
+      //}
       return componentsList
     }
   

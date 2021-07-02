@@ -13,10 +13,10 @@ banner: https://picsum.photos/1000/400
 # Defines options shown in the header navigation menu
 ######################################################
 nav:
-#- label: About
-#  icon: fas fa-info
-#  action: load-page
-#  path: /about
+- label: About
+  icon: fas fa-info
+  action: load-page
+  path: /about
 - label: Contact Us
   icon: fas fa-envelope
   action: contact-us
