@@ -27,7 +27,7 @@ nav:
 
 # If a contact-us action is defined for the nav menu a contact form will be enabled
 # The following information is used in the display and processing of the contact form.
-#contactForm:
-#  to:
-#  - User Name <user@example.com>
-#  subject: Contact Us
+contactForm:
+  to:
+  - JSTOR Labs <ron.snyder@ithaka.org>
+  subject: Juncture
