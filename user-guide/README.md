@@ -69,6 +69,14 @@ After the site has been created and configured for hosting, you can begin custom
 
 ### Using custom domain for the site
 
-## Updating the site software version
+## Site management
 
-The Juncture code base is under active development and a forked site can easily be updated to use the latest software version.
+The Juncture code base is under active development and a forked site can easily be updated to use the latest software version.  For smooth software upgrades, avoid modifying the original Juncture files, specifically:
+- README.md
+- index.html
+- 404.html
+- sample-visual-essay.md
+- all files in the _user-guide_ folder
+
+To perform a software update:
+1. Go to the Github page for your forked version of the main Github repository and select the `Fetch upstream` button.
