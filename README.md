@@ -1,3 +1,3 @@
 # Heading 1
 
-[Quick start](quick-start)
+[User guide](user-guide)
