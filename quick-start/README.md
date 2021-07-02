@@ -1,1 +1,0 @@
-# Juncture Quick Start

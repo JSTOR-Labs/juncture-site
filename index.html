@@ -719,7 +719,7 @@
             if (path.slice(-1) !== '/') path += '/'
             this.path = path 
             console.log(`loadEssay: basePath=${contentSource.basePath} path=${path} anchor=${this.anchor}`)
-            let pathsToTry = [`${path}README.md`, `${path.slice(0,-1)}.md`, `${path}index.md`]
+            let pathsToTry = [`${path}index.md`, `${path}README.md`, `${path.slice(0,-1)}.md`]
             if (this.authenticatedUser !== null) pathsToTry = [...[`${path}admin.md`], ...pathsToTry]
             let markdown
             for (let i = 0; i < pathsToTry.length; i++) {
