@@ -1,3 +1,0 @@
-# About
-
-![](digital-skills.png)
