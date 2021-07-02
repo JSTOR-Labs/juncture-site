@@ -1,6 +1,6 @@
 # Welcome to Juncture
 
-[Juncture](https://jstor-labs.github.io/juncture-site)
+[Juncture](https://juncture-digital.org)
 
 [User guide](user-guide)
 

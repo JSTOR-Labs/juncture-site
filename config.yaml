@@ -1,11 +1,11 @@
 title: Juncture
 tagline: A Visual Essay Site
 banner: https://picsum.photos/1000/400
-#favicon:
-#logo: 
+#favicon: <favicon url>
+#logo: <logo url>
 
 # When using a custom domain these fields must be updated to match
-# the account and repository name
+# the Github account and repository name
 #acct: <GitHub account/username>
 #repo: <GitHub repository>
 
