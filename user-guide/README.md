@@ -12,7 +12,7 @@ To make a copy of Juncture...
 
 ### Adding a visual essay page
 
-```markdown
+```html
 <param ve-config title="New Visual Essay" layout="vertical">
 
 # Visual Essay Main Heading
